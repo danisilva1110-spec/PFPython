@@ -13,5 +13,5 @@ de 12 DOF (ROV + braço) com matriz de excentricidades configurável.
 - Use `parse_axis_order` para aceitar ordens mistas de juntas prismáticas (Dx/Dy/Dz) e rotacionais (x/y/z); combine com
   `matriz_excentricidades` para gerar automaticamente os elos de um UVMS e calcular M/C/G/τ de forma paralelizada.
 - Ative mensagens de debug com `debug=True` em `forward_kinematics`/`spatial_jacobians`/`dynamics` para imprimir o término do
-  cálculo de cada elo (cinemática e dinâmica) com `flush` imediato, inclusive durante execução paralela no Colab, útil para
-  acompanhar a progressão simbólica.
+  cálculo de cada elo (cinemática e dinâmica) com `flush` imediato. Em execuções paralelas, os logs são roteados por uma
+  fila compartilhada + listener no processo principal, garantindo que as mensagens apareçam em tempo real no Colab.
