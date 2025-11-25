@@ -28,3 +28,9 @@ O código do notebook foi dividido no pacote `robot_dynamics/`:
 - `kinematics.py`: cinemática direta e jacobianos espaciais.
 - `dynamics.py`: cálculo de energias, Lagrange e matrizes M/C/G/τ (com suporte a paralelismo e logs).
 - `__init__.py`: expõe a API principal (`dynamics`, `forward_kinematics`, etc.) e inicializa o `sympy` para impressão.
+
+## Notebook principal
+
+- Use `robot_dynamics_main.ipynb` no Colab (ou localmente) para clonar este repositório automaticamente e executar um exemplo
+  mínimo de cinemática/dinâmica para 2 DOF. Atualize a variável `REPO_URL` no topo do notebook para apontar para o repositório
+  Git que deseja trabalhar.
