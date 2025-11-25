@@ -16,3 +16,15 @@ de 12 DOF (ROV + braço) com matriz de excentricidades configurável.
   cálculo de cada elo (cinemática e dinâmica) com `sys.stdout.write` + `flush` imediato. Em execuções paralelas, os logs são
   roteados por uma fila compartilhada + listener no processo principal, garantindo que as mensagens apareçam em tempo real no
   Colab.
+
+## Estrutura em módulos Python
+
+O código do notebook foi dividido no pacote `robot_dynamics/`:
+
+- `types.py`: tipos literais para juntas e eixos.
+- `models.py`: dataclasses `Joint`, `Link` e `RobotModel`.
+- `transforms.py`: transformação DH e utilitário para extrair eixo de rotação/translação.
+- `parsing.py`: parsing e validação de eixos e criação de elos a partir de listas de parâmetros.
+- `kinematics.py`: cinemática direta e jacobianos espaciais.
+- `dynamics.py`: cálculo de energias, Lagrange e matrizes M/C/G/τ (com suporte a paralelismo e logs).
+- `__init__.py`: expõe a API principal (`dynamics`, `forward_kinematics`, etc.) e inicializa o `sympy` para impressão.
