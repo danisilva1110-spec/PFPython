@@ -26,7 +26,8 @@ O código do notebook foi dividido no pacote `robot_dynamics/`:
 - `transforms.py`: transformação DH e utilitário para extrair eixo de rotação/translação.
 - `parsing.py`: parsing e validação de eixos e criação de elos a partir de listas de parâmetros.
 - `kinematics.py`: cinemática direta e jacobianos espaciais.
-- `dynamics.py`: cálculo de energias, Lagrange e matrizes M/C/G/τ (com suporte a paralelismo e logs).
+- `dynamics.py`: cálculo de energias, Lagrange e matrizes M/C/H/G/τ (com suporte a paralelismo e logs; retorna energia cinética
+  total para visualização rápida).
 - `__init__.py`: expõe a API principal (`dynamics`, `forward_kinematics`, etc.) e inicializa o `sympy` para impressão.
 
 ## Notebook principal
