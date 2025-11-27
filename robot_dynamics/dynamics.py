@@ -33,7 +33,7 @@ def _energy_terms(args):
         link,
         Jv_i,
         Jw_i,
-        origin_next,
+        origin_current,
         T_i,
         dq_vec,
         gravity,
@@ -47,7 +47,7 @@ def _energy_terms(args):
     w = Jw_i * dq_vec
     I_world = R * link.inertia * R.T
     kinetic = 0.5 * link.mass * (v.T * v)[0] + 0.5 * (w.T * I_world * w)[0]
-    potential = link.mass * gravity.dot(origin_next + R * link.com)
+    potential = link.mass * gravity.dot(origin_current + R * link.com)
     if debug:
         _maybe_log(debug_queue, f"[DEBUG][Dinâmica] Energias do elo {idx}/{total} calculadas.")
     return kinetic, potential
@@ -91,7 +91,7 @@ def dynamics(
             link,
             Jvs[i],
             Jws[i],
-            origins[i + 1],
+            origins[i],
             Ts[i],
             dq_vec,
             model.gravity,
