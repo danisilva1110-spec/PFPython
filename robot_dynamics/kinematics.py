@@ -7,16 +7,17 @@ from .transforms import axis_from_char, dh_transform
 
 
 def forward_kinematics(model: RobotModel, debug: bool = False) -> Tuple[List[Matrix], List[Matrix]]:
-    Ts, origins = [], [Matrix([0, 0, 0])]
+    Ts, origins = [], []
     T = Matrix.eye(4)
     for idx, link in enumerate(model.links):
+        origins.append(T[:3, 3].copy())
         T = T * dh_transform(link.joint.theta, link.joint.d, link.joint.a, link.joint.alpha)
-        Ts.append(T)
-        origins.append(T[:3, 3])
+        Ts.append(T.copy())
         if debug:
             print(
                 f"[DEBUG][Cinemática] Elo {idx + 1}/{model.dof} concluído (origem: {origins[-1].T})"
             )
+    origins.append(T[:3, 3].copy())
     return Ts, origins
 
 
@@ -30,10 +31,14 @@ def spatial_jacobians(
 
     Jvs, Jws = [], []
     for i, link in enumerate(model.links):
-        o_i = origins[i]
-        o_com = origins[i] + Ts[i][:3, :3] * link.com
+        origin_current = origins[i]
+        o_com = origin_current + Ts[i][:3, :3] * link.com
         Jv_cols, Jw_cols = [], []
         for j in range(model.dof):
+            if j > i:
+                Jv_cols.append(Matrix([0, 0, 0]))
+                Jw_cols.append(Matrix([0, 0, 0]))
+                continue
             axis_vec = motion_axes[j]
             o_j = origins[j]
             if model.links[j].joint.joint_type == "R":
