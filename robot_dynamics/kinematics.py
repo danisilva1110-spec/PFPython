@@ -40,7 +40,7 @@ def spatial_jacobians(
                 Jw_cols.append(Matrix([0, 0, 0]))
                 continue
             axis_vec = motion_axes[j]
-            o_j = origins[j]
+            o_j = origins[j + 1]
             if model.links[j].joint.joint_type == "R":
                 Jv_cols.append(axis_vec.cross(o_com - o_j))
                 Jw_cols.append(axis_vec)
