@@ -10,14 +10,14 @@ def forward_kinematics(model: RobotModel, debug: bool = False) -> Tuple[List[Mat
     Ts, origins = [], []
     T = Matrix.eye(4)
     for idx, link in enumerate(model.links):
-        origins.append(T[:3, 3])
+        origins.append(T[:3, 3].copy())
         T = T * dh_transform(link.joint.theta, link.joint.d, link.joint.a, link.joint.alpha)
-        Ts.append(T)
+        Ts.append(T.copy())
         if debug:
             print(
                 f"[DEBUG][Cinemática] Elo {idx + 1}/{model.dof} concluído (origem: {origins[-1].T})"
             )
-    origins.append(T[:3, 3])
+    origins.append(T[:3, 3].copy())
     return Ts, origins
 
 
