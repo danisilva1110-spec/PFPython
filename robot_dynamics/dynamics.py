@@ -91,7 +91,7 @@ def dynamics(
             link,
             Jvs[i],
             Jws[i],
-            origins[i],
+            origins[i + 1],
             Ts[i],
             dq_vec,
             model.gravity,
