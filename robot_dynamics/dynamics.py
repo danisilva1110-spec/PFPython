@@ -114,7 +114,9 @@ def dynamics(
                 energy_results.append(_energy_terms(arg))
 
         kinetic_terms, potential_terms = zip(*energy_results)
-        L = sp.together(sp.Add(*kinetic_terms) - sp.Add(*potential_terms))
+        kinetic_total = sp.together(sp.Add(*kinetic_terms))
+        potential_total = sp.together(sp.Add(*potential_terms))
+        L = sp.together(kinetic_total - potential_total)
 
         tau_args = [
             (L, qs, dqs, ddqs, idx, model.dof, debug_queue, debug) for idx in range(model.dof)
@@ -135,12 +137,15 @@ def dynamics(
         Cg_raw = tau_raw.xreplace(zero_dd)
         C_raw = Cg_raw - Cg_raw.xreplace(zero_d)
         G_raw = Cg_raw.xreplace(zero_d)
+        H_raw = C_raw + G_raw
 
-        replacements, reduced_exprs = sp.cse([M_raw, C_raw, G_raw, tau_raw], optimizations="basic")
-        M_opt, C_opt, G_opt, tau_opt = (
+        replacements, reduced_exprs = sp.cse(
+            [kinetic_total, M_raw, C_raw, H_raw, G_raw, tau_raw], optimizations="basic"
+        )
+        kinetic_opt, M_opt, C_opt, H_opt, G_opt, tau_opt = (
             sp.Matrix(expr) if hasattr(expr, "shape") else expr for expr in reduced_exprs
         )
-        return replacements, M_opt, C_opt, G_opt, tau_opt
+        return replacements, kinetic_opt, M_opt, C_opt, H_opt, G_opt, tau_opt
     finally:
         if debug_queue is not None:
             debug_queue.put(None)
