@@ -31,7 +31,7 @@ def spatial_jacobians(
     Jvs, Jws = [], []
     for i, link in enumerate(model.links):
         o_i = origins[i]
-        o_com = origins[i + 1] + Ts[i][:3, :3] * link.com
+        o_com = origins[i] + Ts[i][:3, :3] * link.com
         Jv_cols, Jw_cols = [], []
         for j in range(model.dof):
             axis_vec = motion_axes[j]
