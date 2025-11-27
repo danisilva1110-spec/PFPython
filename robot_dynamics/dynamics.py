@@ -28,29 +28,12 @@ def _maybe_log(debug_queue, message: str):
         debug_queue.put(message)
 
 
-def _energy_terms(args):
-    (
-        link,
-        Jv_i,
-        Jw_i,
-        origin_current,
-        T_i,
-        dq_vec,
-        gravity,
-        idx,
-        total,
-        debug_queue,
-        debug,
-    ) = args
-    R = T_i[:3, :3]
-    v = Jv_i * dq_vec
-    w = Jw_i * dq_vec
-    I_world = R * link.inertia * R.T
-    kinetic = 0.5 * link.mass * (v.T * v)[0] + 0.5 * (w.T * I_world * w)[0]
+def _potential_terms(args):
+    link, origin_current, R, gravity, idx, total, debug_queue, debug = args
     potential = link.mass * gravity.dot(origin_current + R * link.com)
     if debug:
-        _maybe_log(debug_queue, f"[DEBUG][Dinâmica] Energias do elo {idx}/{total} calculadas.")
-    return kinetic, potential
+        _maybe_log(debug_queue, f"[DEBUG][Dinâmica] Energia potencial do elo {idx}/{total} calculada.")
+    return potential
 
 
 def _lagrange_tau_term(args):
@@ -86,14 +69,18 @@ def dynamics(
         listener.start()
 
     dq_vec = Matrix(dqs)
-    energy_args = [
+    M_direct = Matrix.zeros(model.dof, model.dof)
+    for i, link in enumerate(model.links):
+        R_i = Ts[i][:3, :3]
+        M_direct += link.mass * (Jvs[i].T * Jvs[i]) + Jws[i].T * R_i * link.inertia * R_i.T * Jws[i]
+
+    kinetic_total = sp.together((dq_vec.T * M_direct * dq_vec)[0] * sp.Rational(1, 2))
+
+    potential_args = [
         (
             link,
-            Jvs[i],
-            Jws[i],
-            origins[i + 1],
-            Ts[i],
-            dq_vec,
+            origins[i],
+            Ts[i][:3, :3],
             model.gravity,
             i + 1,
             model.dof,
@@ -103,18 +90,16 @@ def dynamics(
         for i, link in enumerate(model.links)
     ]
 
-    energy_results = []
+    potential_terms = []
     try:
         if parallel and model.dof > 1:
             with ProcessPoolExecutor(max_workers=processes) as executor:
-                for res in executor.map(_energy_terms, energy_args, chunksize=1):
-                    energy_results.append(res)
+                for res in executor.map(_potential_terms, potential_args, chunksize=1):
+                    potential_terms.append(res)
         else:
-            for arg in energy_args:
-                energy_results.append(_energy_terms(arg))
+            for arg in potential_args:
+                potential_terms.append(_potential_terms(arg))
 
-        kinetic_terms, potential_terms = zip(*energy_results)
-        kinetic_total = sp.together(sp.Add(*kinetic_terms))
         potential_total = sp.together(sp.Add(*potential_terms))
         L = sp.together(kinetic_total - potential_total)
 
@@ -140,7 +125,7 @@ def dynamics(
         H_raw = C_raw + G_raw
 
         replacements, reduced_exprs = sp.cse(
-            [kinetic_total, M_raw, C_raw, H_raw, G_raw, tau_raw], optimizations="basic"
+            [kinetic_total, M_direct, C_raw, H_raw, G_raw, tau_raw], optimizations="basic"
         )
         kinetic_opt, M_opt, C_opt, H_opt, G_opt, tau_opt = (
             sp.Matrix(expr) if hasattr(expr, "shape") else expr for expr in reduced_exprs
