@@ -34,6 +34,10 @@ def spatial_jacobians(
         o_com = origins[i] + Ts[i][:3, :3] * link.com
         Jv_cols, Jw_cols = [], []
         for j in range(model.dof):
+            if j > i:
+                Jv_cols.append(Matrix([0, 0, 0]))
+                Jw_cols.append(Matrix([0, 0, 0]))
+                continue
             axis_vec = motion_axes[j]
             o_j = origins[j]
             if model.links[j].joint.joint_type == "R":
