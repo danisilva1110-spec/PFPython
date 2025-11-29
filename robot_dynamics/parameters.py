@@ -24,9 +24,8 @@ class LinkParameters:
     com : Matrix
         3x1 position of the center of mass expressed in the link frame.
     inertia : Matrix
-        3x3 inertia tensor about the link frame origin (DH frame), expressed in
-        the link frame. Energies internally shift this tensor to the center of
-        mass using the parallel-axis theorem.
+        3x3 inertia tensor about the link's center of mass, expressed in the
+        link frame.
     """
 
     a: Expr
