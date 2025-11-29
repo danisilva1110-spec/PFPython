@@ -1,54 +1,68 @@
-from typing import List, Tuple
-
+"""Symbolic kinematics helpers for open-chain robots."""
 from sympy import Matrix
 
-from .models import RobotModel
-from .transforms import axis_from_char, dh_transform
+from .parameters import LinkParameters
+from .transforms import transform_from_dh
 
 
-def forward_kinematics(model: RobotModel, debug: bool = False) -> Tuple[List[Matrix], List[Matrix]]:
-    Ts, origins = [], []
+def forward_kinematics(links, q):
+    """Compute cumulative transforms for each link frame.
+
+    Parameters
+    ----------
+    links : list[LinkParameters]
+        Robot description.
+    q : list
+        Generalized coordinates matching the order of ``links``.
+    """
+    transforms = []
     T = Matrix.eye(4)
-    for idx, link in enumerate(model.links):
-        origins.append(T[:3, 3].copy())
-        T = T * dh_transform(link.joint.theta, link.joint.d, link.joint.a, link.joint.alpha)
-        Ts.append(T.copy())
-        if debug:
-            print(
-                f"[DEBUG][Cinemática] Elo {idx + 1}/{model.dof} concluído (origem: {origins[-1].T})"
-            )
-    origins.append(T[:3, 3].copy())
-    return Ts, origins
+    for link, qi in zip(links, q):
+        if link.joint_type == "revolute":
+            theta = link.theta + qi
+            d_val = link.d
+        else:
+            theta = link.theta
+            d_val = link.d + qi
+        A = transform_from_dh(link.a, link.alpha, d_val, theta)
+        T = T * A
+        transforms.append(T)
+    return transforms
 
 
-def spatial_jacobians(
-    model: RobotModel, Ts: List[Matrix], origins: List[Matrix], debug: bool = False
-) -> Tuple[List[Matrix], List[Matrix]]:
-    motion_axes = []
-    for j, link in enumerate(model.links):
-        R_prev = Matrix.eye(3) if j == 0 else Ts[j - 1][:3, :3]
-        motion_axes.append(axis_from_char(R_prev, link.joint.axis))
+def center_of_mass_positions(transforms, links):
+    """Compute COM positions in the base frame."""
+    com_positions = []
+    for T, link in zip(transforms, links):
+        com_hom = Matrix.vstack(link.com, Matrix([1]))
+        com_positions.append((T * com_hom)[:3, 0])
+    return com_positions
 
-    Jvs, Jws = [], []
-    for i, link in enumerate(model.links):
-        origin_current = origins[i]
-        o_com = origin_current + Ts[i][:3, :3] * link.com
-        Jv_cols, Jw_cols = [], []
-        for j in range(model.dof):
+
+def compute_jacobians(transforms, links, q):
+    """Compute linear and angular Jacobians for each link's COM."""
+    origins = [Matrix([0, 0, 0])]
+    z_axes = [Matrix([0, 0, 1])]
+    for T in transforms:
+        origins.append(T[:3, 3])
+        z_axes.append(T[:3, 2])
+
+    com_positions = center_of_mass_positions(transforms, links)
+    jacobians = []
+    for i, (link, p_com) in enumerate(zip(links, com_positions)):
+        Jv_cols = []
+        Jw_cols = []
+        for j, prev_axis in enumerate(z_axes[:-1]):
             if j > i:
                 Jv_cols.append(Matrix([0, 0, 0]))
                 Jw_cols.append(Matrix([0, 0, 0]))
                 continue
-            axis_vec = motion_axes[j]
-            o_j = origins[j + 1]
-            if model.links[j].joint.joint_type == "R":
-                Jv_cols.append(axis_vec.cross(o_com - o_j))
-                Jw_cols.append(axis_vec)
+            p_j = origins[j]
+            if links[j].joint_type == "revolute":
+                Jv_cols.append(prev_axis.cross(p_com - p_j))
+                Jw_cols.append(prev_axis)
             else:
-                Jv_cols.append(axis_vec)
+                Jv_cols.append(prev_axis)
                 Jw_cols.append(Matrix([0, 0, 0]))
-        Jvs.append(Matrix.hstack(*Jv_cols))
-        Jws.append(Matrix.hstack(*Jw_cols))
-        if debug:
-            print(f"[DEBUG][Cinemática] Jacobianos do elo {i + 1}/{model.dof} calculados.")
-    return Jvs, Jws
+        jacobians.append((Matrix.hstack(*Jv_cols), Matrix.hstack(*Jw_cols)))
+    return jacobians
