@@ -24,7 +24,7 @@ class LinkParameters:
     com : Matrix
         3x1 position of the center of mass expressed in the link frame.
     inertia : Matrix
-        3x3 inertia tensor about the link frame origin, expressed in the
+        3x3 inertia tensor about the link's center of mass, expressed in the
         link frame.
     """
 
