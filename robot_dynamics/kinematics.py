@@ -17,7 +17,7 @@ def forward_kinematics(links, q):
     """
 
     def _depends_on(expr, sym):
-        return hasattr(expr, "free_symbols") and sym in expr.free_symbols
+        return hasattr(expr, "has") and expr.has(sym)
 
     transforms = []
     T = Matrix.eye(4)
