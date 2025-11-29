@@ -15,15 +15,19 @@ def forward_kinematics(links, q):
     q : list
         Generalized coordinates matching the order of ``links``.
     """
+
+    def _depends_on(expr, sym):
+        return hasattr(expr, "has") and expr.has(sym)
+
     transforms = []
     T = Matrix.eye(4)
     for link, qi in zip(links, q):
         if link.joint_type == "revolute":
-            theta = link.theta + qi
+            theta = link.theta if _depends_on(link.theta, qi) else link.theta + qi
             d_val = link.d
         else:
             theta = link.theta
-            d_val = link.d + qi
+            d_val = link.d if _depends_on(link.d, qi) else link.d + qi
         A = transform_from_dh(link.a, link.alpha, d_val, theta)
         T = T * A
         transforms.append(T)
