@@ -24,7 +24,10 @@ def kinetic_energy(links, q, qd):
         w = Jw * Matrix(qd)
         R = transforms[idx][:3, :3]
         skew_r = _skew(link.com)
-        inertia_com = link.inertia - link.mass * (skew_r.T * skew_r)
+        # link.inertia is defined about the link's center of mass. Shift it to the
+        # link frame origin using the parallel-axis theorem before rotating to the
+        # world frame.
+        inertia_com = link.inertia + link.mass * (skew_r.T * skew_r)
         inertia_world = R * inertia_com * R.T
         T_total += 0.5 * link.mass * (v.T * v)[0] + 0.5 * (w.T * inertia_world * w)[0]
     return T_total.simplify()
