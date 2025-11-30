@@ -9,23 +9,14 @@ def kinetic_energy(links, q, qd):
     transforms = forward_kinematics(links, q)
     jacobians = compute_jacobians(transforms, links, q)
 
-    def _skew(v):
-        return Matrix(
-            [
-                [0, -v[2], v[1]],
-                [v[2], 0, -v[0]],
-                [-v[1], v[0], 0],
-            ]
-        )
-
     T_total = 0
     for idx, (link, (Jv, Jw)) in enumerate(zip(links, jacobians)):
         v = Jv * Matrix(qd)
         w = Jw * Matrix(qd)
         R = transforms[idx][:3, :3]
-        skew_r = _skew(link.com)
-        inertia_com = link.inertia - link.mass * (skew_r.T * skew_r)
-        inertia_world = R * inertia_com * R.T
+        # link.inertia is expressed about the link's center of mass. Rotate it to
+        # the world frame directly for the angular kinetic energy term.
+        inertia_world = R * link.inertia * R.T
         T_total += 0.5 * link.mass * (v.T * v)[0] + 0.5 * (w.T * inertia_world * w)[0]
     return T_total.simplify()
 
