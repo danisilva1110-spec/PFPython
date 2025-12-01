@@ -43,30 +43,53 @@ def center_of_mass_positions(transforms, links):
     return com_positions
 
 
+AXIS_TO_INDEX = {"x": 0, "y": 1, "z": 2}
+
+
+def _axis_from_transform(transform: Matrix, axis_label: str) -> Matrix:
+    """Select the requested joint axis (x/y/z) from a homogeneous transform."""
+
+    axis_idx = AXIS_TO_INDEX[axis_label]
+    return transform[:3, axis_idx]
+
+
 def compute_jacobians(transforms, links, q):
-    """Compute linear and angular Jacobians for each link's COM."""
+    """Compute linear and angular Jacobians for each link's COM.
+
+    Each joint can rotate/translate about ``x``, ``y`` or ``z``; this
+    direction is read from :class:`LinkParameters.axis` so that excentric
+    offsets or custom assembly orders can be respected without changing the
+    DH chain itself.
+    """
+
+    if not links:
+        return []
+
     origins = [Matrix([0, 0, 0])]
-    z_axes = [Matrix([0, 0, 1])]
-    for T in transforms:
-        origins.append(T[:3, 3])
-        z_axes.append(T[:3, 2])
+    axes = [_axis_from_transform(Matrix.eye(4), links[0].axis)]
+
+    for transform, next_link in zip(transforms[:-1], links[1:]):
+        origins.append(transform[:3, 3])
+        axes.append(_axis_from_transform(transform, next_link.axis))
+
+    origins.append(transforms[-1][:3, 3])
 
     com_positions = center_of_mass_positions(transforms, links)
     jacobians = []
     for i, (link, p_com) in enumerate(zip(links, com_positions)):
         Jv_cols = []
         Jw_cols = []
-        for j, prev_axis in enumerate(z_axes[:-1]):
+        for j, axis_vec in enumerate(axes):
             if j > i:
                 Jv_cols.append(Matrix([0, 0, 0]))
                 Jw_cols.append(Matrix([0, 0, 0]))
                 continue
             p_j = origins[j]
             if links[j].joint_type == "revolute":
-                Jv_cols.append(prev_axis.cross(p_com - p_j))
-                Jw_cols.append(prev_axis)
+                Jv_cols.append(axis_vec.cross(p_com - p_j))
+                Jw_cols.append(axis_vec)
             else:
-                Jv_cols.append(prev_axis)
+                Jv_cols.append(axis_vec)
                 Jw_cols.append(Matrix([0, 0, 0]))
         jacobians.append((Matrix.hstack(*Jv_cols), Matrix.hstack(*Jw_cols)))
     return jacobians
