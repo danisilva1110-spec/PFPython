@@ -36,6 +36,7 @@ class LinkParameters:
     mass: Expr
     com: Matrix
     inertia: Matrix
+    axis: str = "z"
 
     def __post_init__(self) -> None:
         if self.joint_type not in {"revolute", "prismatic"}:
@@ -44,3 +45,5 @@ class LinkParameters:
             raise ValueError("com must be a 3x1 sympy Matrix")
         if not isinstance(self.inertia, Matrix) or self.inertia.shape != (3, 3):
             raise ValueError("inertia must be a 3x3 sympy Matrix")
+        if self.axis not in {"x", "y", "z"}:
+            raise ValueError("axis must be one of 'x', 'y' or 'z'")
