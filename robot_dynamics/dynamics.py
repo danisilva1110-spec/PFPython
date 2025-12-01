@@ -2,7 +2,12 @@
 from sympy import Matrix, zeros, diff
 
 from .energies import kinetic_energy, potential_energy
-from .builders import build_links_from_matrices
+from .builders import (
+    _filter_by_mask,
+    build_links_from_matrices,
+    build_state_symbols,
+    parse_axis_order,
+)
 from .kinematics import forward_kinematics
 
 
@@ -108,3 +113,63 @@ def equations_of_motion_from_matrices(
         "H": H,
         "G": G,
     }
+
+
+def equations_of_motion_from_order(
+    dh_params,
+    axis_order,
+    masses,
+    excentricities,
+    inertia_tensors,
+    gravity,
+    active_mask=None,
+    q=None,
+    qd=None,
+):
+    """Wrapper that accepts a MATLAB-style ordem de juntas (Dx/Dy/Dz/x/y/z).
+
+    Parameters
+    ----------
+    dh_params : sequence
+        Rows of (a, alpha, d, theta) for each joint.
+    axis_order : sequence
+        Strings like ``"Dx"``, ``"Dy"``, ``"Dz"`` for prismáticos ou ``"x"``,
+        ``"y"``, ``"z"`` (ou ``"Rx"``, ``"Ry"``, ``"Rz"``) para rotacionais.
+    masses, excentricities, inertia_tensors : sequence
+        Same as :func:`equations_of_motion_from_matrices`.
+    gravity : Matrix
+        Gravity vector expressed in the base frame.
+    active_mask : sequence of int/bool, optional
+        Entries with ``0`` são removidas do cálculo, permitindo reutilizar as
+        tabelas originais apenas ligando/desligando graus de liberdade.
+    q, qd : sequence, optional
+        Generalized coordinates and their derivatives. If omitted, são gerados
+        automaticamente a partir de ``axis_order`` e ``active_mask``.
+    """
+
+    joint_types, axis_labels = parse_axis_order(axis_order)
+
+    if active_mask is not None:
+        dh_params = _filter_by_mask(active_mask, dh_params)
+        joint_types = _filter_by_mask(active_mask, joint_types)
+        masses = _filter_by_mask(active_mask, masses)
+        excentricities = _filter_by_mask(active_mask, excentricities)
+        inertia_tensors = _filter_by_mask(active_mask, inertia_tensors)
+        axis_labels = _filter_by_mask(active_mask, axis_labels)
+
+    if q is None or qd is None:
+        q_auto, qd_auto = build_state_symbols(axis_order, active_mask=active_mask)
+        q = q if q is not None else q_auto
+        qd = qd if qd is not None else qd_auto
+
+    return equations_of_motion_from_matrices(
+        dh_params,
+        joint_types,
+        masses,
+        excentricities,
+        inertia_tensors,
+        q=q,
+        qd=qd,
+        gravity=gravity,
+        axis_orders=axis_labels,
+    )

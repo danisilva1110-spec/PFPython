@@ -10,8 +10,9 @@ de 12 DOF (ROV + braço) com matriz de excentricidades configurável.
   controlar o número de núcleos usados.
 - A cinemática direta usa apenas os parâmetros DH (sem deslocar por excentricidades); a `matriz_excentricidades` move o centro
   de massa de **cada** elo apenas na etapa dinâmica (M/C/G/τ).
-- Use `parse_axis_order` para aceitar ordens mistas de juntas prismáticas (Dx/Dy/Dz) e rotacionais (x/y/z); combine com
-  `matriz_excentricidades` para gerar automaticamente os elos de um UVMS e calcular M/C/G/τ de forma paralelizada.
+- Use `parse_axis_order`/`equations_of_motion_from_order` para aceitar ordens mistas de juntas prismáticas (Dx/Dy/Dz) e
+  rotacionais (x/y/z); combine com `build_state_symbols` e um `active_mask` de 0/1 para ligar/desligar graus de liberdade
+  sem editar as tabelas originais de DH/excentricidades/inércia.
 - O helper `build_links_from_matrices` replica a interface matricial do projeto MATLAB: passe matrizes de DH,
   excentricidades, tensores de inércia (simetrizados automaticamente) e as ordens de rotação/translation de cada junta para
   obter os objetos `LinkParameters`. Em seguida, `equations_of_motion_from_matrices` entrega M/C/H/G já prontos a partir
