@@ -96,11 +96,11 @@ def build_state_symbols(
         matrix of ``0``/``1`` to disable degrees of freedom without editing
         the rest of the tables.
     symbol_prefix : str
-        Fallback base name for generalized coordinates when an entry is not a
-        valid Python identifier.
+        Base name for generalized coordinates (defaults to ``q``). Symbols are
+        numbered in order after applying ``active_mask`` (``q1``, ``q2`` ...).
     derivative_prefix : str
-        Prefix for velocity symbols. Defaults to ``dq`` (e.g., ``dqDx`` or
-        ``dq1``).
+        Prefix for velocity symbols. Defaults to ``dq`` (e.g., ``dq1``, ``dq2``
+        ...).
     """
 
     if active_mask is None:
@@ -113,10 +113,10 @@ def build_state_symbols(
     q_symbols = []
     qd_symbols = []
 
-    for idx, (code, keep) in enumerate(zip(axis_order, keep_mask)):
+    for _, (code, keep) in enumerate(zip(axis_order, keep_mask)):
         if not keep:
             continue
-        base_name = code if code.isidentifier() else f"{symbol_prefix}{idx + 1}"
+        base_name = f"{symbol_prefix}{len(q_symbols) + 1}"
         q_sym = symbols(base_name)
         qd_sym = symbols(f"{derivative_prefix}{base_name}")
         q_symbols.append(q_sym)
