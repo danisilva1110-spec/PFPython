@@ -41,4 +41,13 @@ O código do notebook foi dividido no pacote `robot_dynamics/`:
   e calcular as equações de movimento. Ele usa `auto_parameters_from_order` para criar
   automaticamente todas as variáveis (DH, massas, excentricidades, tensores e
   coordenadas generalizadas) apenas a partir do vetor de rotações/translações e de
-  templates 0/1 que imitam o fluxo do MATLAB.
+  templates 0/1 que imitam o fluxo do MATLAB. O dicionário retornado por
+  `equations_of_motion_from_order` expõe cada termo dinâmico individualmente:
+
+  ```python
+  resultado = equations_of_motion_from_order(...)
+  M = resultado["M"]
+  C = resultado["C"]
+  H = resultado["H"]
+  G = resultado["G"]
+  ```
