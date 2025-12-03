@@ -16,6 +16,7 @@ from .builders import (
     sanitize_inertia_tensor,
     parse_axis_order,
     build_state_symbols,
+    mask_excentricities_by_axis,
 )
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "equations_of_motion_from_order",
     "parse_axis_order",
     "build_state_symbols",
+    "mask_excentricities_by_axis",
     "planar_two_dof",
 ]
