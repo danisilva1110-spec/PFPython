@@ -54,6 +54,50 @@ def _filter_by_mask(mask: Sequence, sequence: Sequence):
     return [item for item, keep in zip(sequence, mask) if keep]
 
 
+def mask_excentricities_by_axis(
+    length_vectors: Sequence[Sequence], axis_order: Sequence[str]
+) -> list[tuple]:
+    """Keep only the component aligned with each joint's motion axis.
+
+    This helper mirrors the MATLAB workflow where a generic matrix of offsets
+    ``[Lx_i, Ly_i, Lz_i]`` is combined with an axis code (``Dx``/``Dy``/``Dz``/``x``/``y``/``z``)
+    to zero out the two unused components. Each row is converted to a tuple with
+    only the entry on the commanded axis preserved.
+
+    Parameters
+    ----------
+    length_vectors : sequence of length-3 sequences
+        Generic offsets ``(Lx, Ly, Lz)`` for cada elo.
+    axis_order : sequence of str
+        Strings like ``"Dx"``, ``"Dy"``, ``"Dz"``, ``"x"``, ``"y"`` ou ``"z"``.
+
+    Returns
+    -------
+    list[tuple]
+        Same shape as ``length_vectors``, but with only the axis-aligned
+        component kept and the other two set to zero.
+    """
+
+    if len(length_vectors) != len(axis_order):
+        raise ValueError("length_vectors and axis_order must have the same length")
+
+    axis_to_index = {"x": 0, "y": 1, "z": 2}
+    masked: list[tuple] = []
+
+    for offsets, axis_code in zip(length_vectors, axis_order):
+        if len(offsets) != 3:
+            raise ValueError("each length row must contain (Lx, Ly, Lz)")
+
+        axis = _normalize_axis_label(axis_code[-1])
+        keep_index = axis_to_index[axis]
+        sym_offsets = [sympify(value) for value in offsets]
+        masked.append(
+            tuple(value if idx == keep_index else sympify(0) for idx, value in enumerate(sym_offsets))
+        )
+
+    return masked
+
+
 def parse_axis_order(axis_order: Sequence[str]) -> tuple[list[str], list[str]]:
     """Parse strings like ``"Dx"``/``"Dz"``/``"x"``/``"z"`` into joint types and axes.
 
@@ -96,11 +140,11 @@ def build_state_symbols(
         matrix of ``0``/``1`` to disable degrees of freedom without editing
         the rest of the tables.
     symbol_prefix : str
-        Fallback base name for generalized coordinates when an entry is not a
-        valid Python identifier.
+        Base name for generalized coordinates (defaults to ``q``). Symbols are
+        numbered in order after applying ``active_mask`` (``q1``, ``q2`` ...).
     derivative_prefix : str
-        Prefix for velocity symbols. Defaults to ``dq`` (e.g., ``dqDx`` or
-        ``dq1``).
+        Prefix for velocity symbols. Defaults to ``dq`` (e.g., ``dq1``, ``dq2``
+        ...).
     """
 
     if active_mask is None:
@@ -113,10 +157,10 @@ def build_state_symbols(
     q_symbols = []
     qd_symbols = []
 
-    for idx, (code, keep) in enumerate(zip(axis_order, keep_mask)):
+    for _, (code, keep) in enumerate(zip(axis_order, keep_mask)):
         if not keep:
             continue
-        base_name = code if code.isidentifier() else f"{symbol_prefix}{idx + 1}"
+        base_name = f"{symbol_prefix}{len(q_symbols) + 1}"
         q_sym = symbols(base_name)
         qd_sym = symbols(f"{derivative_prefix}{base_name}")
         q_symbols.append(q_sym)
